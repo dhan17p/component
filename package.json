@@ -1,0 +1,38 @@
+{
+    "name": "Component",
+    "version": "1.0.0",
+    "description": "A simple CAP project.",
+    "repository": "<Add your repository here>",
+    "license": "UNLICENSED",
+    "private": true,
+    "dependencies": {
+        "@sap/cds": "^7",
+        "@sap/cds-hana": "^2",
+        "express": "^4"
+    },
+    "devDependencies": {
+        "@cap-js/sqlite": "^1",
+        "@sap/cds-dk": "^7",
+        "@sap/ux-specification": "^1.120.9",
+        "rimraf": "^3.0.2"
+    },
+    "scripts": {
+        "start": "cds-serve",
+        "watch-parentcomponent": "cds watch --open parentcomponent/webapp/index.html?sap-ui-xx-viewCache=false",
+        "undeploy": "cf undeploy Component --delete-services --delete-service-keys --delete-service-brokers",
+        "build": "rimraf resources mta_archives && mbt build --mtar archive",
+        "deploy": "cf deploy mta_archives/archive.mtar --retries 1",
+        "watch-childcomponent": "cds watch --open childcomponent/webapp/index.html?sap-ui-xx-viewCache=false",
+        "watch-newparentcom": "cds watch --open newparentcom/webapp/index.html?sap-ui-xx-viewCache=false",
+        "watch-newchildcomponet": "cds watch --open newchildcomponet/webapp/index.html?sap-ui-xx-viewCache=false"
+    },
+    "cds": {
+        "requires": {
+            "auth": "dummy"
+        }
+    },
+    "sapux": [
+        "app/childcomponent",
+        "app/newchildcomponet"
+    ]
+}

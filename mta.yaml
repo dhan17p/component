@@ -1,0 +1,179 @@
+_schema-version: "3.1"
+ID: Component
+description: A simple CAP project.
+version: 1.0.0
+modules:
+- name: Component-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: Component-db
+  - name: uaa_Component
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+    readiness-health-check-http-endpoint: /health
+    readiness-health-check-type: http
+  build-parameters:
+    builder: npm
+- name: Component-db-deployer
+  type: hdb
+  path: gen/db
+  requires:
+  - name: Component-db
+  parameters:
+    buildpack: nodejs_buildpack
+- name: Component-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: Component-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - parentcomponent.zip
+      name: parentcomponent
+      target-path: resources/
+    - artifacts:
+      - childcomponent.zip
+      name: childcomponent
+      target-path: resources/
+    - artifacts:
+      - newparentcom.zip
+      name: newparentcom
+      target-path: resources/
+    - artifacts:
+      - newchildcomponet.zip
+      name: newchildcomponet
+      target-path: resources/
+- name: parentcomponent
+  type: html5
+  path: app/parentcomponent
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+- name: childcomponent
+  type: html5
+  path: app/childcomponent
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+- name: Component-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: Component-destination-service
+    parameters:
+      content-target: true
+  - name: Component-repo-host
+    parameters:
+      service-key:
+        name: Component-repo-host-key
+  - name: uaa_Component
+    parameters:
+      service-key:
+        name: uaa_Component-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: manageddroutercomponet_Component_repo_host
+          ServiceInstanceName: Component-html5-srv
+          ServiceKeyName: Component-repo-host-key
+          sap.cloud.service: manageddroutercomponet
+        - Authentication: OAuth2UserTokenExchange
+          Name: manageddroutercomponet_uaa_Component
+          ServiceInstanceName: Component-xsuaa-service
+          ServiceKeyName: uaa_Component-key
+          sap.cloud.service: manageddroutercomponet
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: newparentcom
+  type: html5
+  path: app/newparentcom
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+- name: newchildcomponet
+  type: html5
+  path: app/newchildcomponet
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: Component-db
+  type: com.sap.xs.hdi-container
+  parameters:
+    service: hana
+    service-plan: hdi-shared
+- name: Component-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: Component-html5-srv
+    service-plan: app-host
+- name: Component-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          - Authentication: NoAuthentication
+            HTML5.DynamicDestination: true
+            HTML5.ForwardAuthToken: true
+            Name: Component-srv-api
+            ProxyType: Internet
+            Type: HTTP
+            URL: ~{srv-api/srv-url}
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: Component-destination-service
+    service-plan: lite
+  requires:
+  - name: srv-api
+- name: uaa_Component
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: Component-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npm ci
+    - npx cds build --production
